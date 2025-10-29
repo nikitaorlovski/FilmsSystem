@@ -1,0 +1,43 @@
+CREATE TABLE IF NOT EXISTS users (
+id INTEGER PRIMARY KEY AUTOINCREMENT,
+name TEXT NOT NULL,
+email TEXT NOT NULL,
+password_hash TEXT NOT NULL,
+role TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS films (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    genre TEXT,
+    duration INTEGER,
+    rating REAL,
+    description TEXT
+);
+
+CREATE TABLE IF NOT EXISTS halls (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    capacity INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS sessions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    film_id INTEGER NOT NULL,
+    hall_id INTEGER NOT NULL,
+    datetime TEXT NOT NULL,
+    price REAL,
+    FOREIGN KEY(film_id) REFERENCES films(id),
+    FOREIGN KEY(hall_id) REFERENCES halls(id)
+);
+
+CREATE TABLE IF NOT EXISTS bookings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    session_id INTEGER NOT NULL,
+    seat_number INTEGER NOT NULL,
+    status TEXT NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(user_id) REFERENCES users(id),
+    FOREIGN KEY(session_id) REFERENCES sessions(id)
+);
