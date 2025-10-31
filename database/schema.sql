@@ -1,13 +1,13 @@
 CREATE TABLE IF NOT EXISTS users (
-id INTEGER PRIMARY KEY AUTOINCREMENT,
-name TEXT NOT NULL,
-email TEXT NOT NULL,
-password_hash TEXT NOT NULL,
-role TEXT NOT NULL
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE,
+    password_hash BYTEA NOT NULL,
+    role TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS films (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id SERIAL PRIMARY KEY,
     title TEXT NOT NULL,
     genre TEXT,
     duration INTEGER,
@@ -16,28 +16,24 @@ CREATE TABLE IF NOT EXISTS films (
 );
 
 CREATE TABLE IF NOT EXISTS halls (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id SERIAL PRIMARY KEY,
     name TEXT NOT NULL,
     capacity INTEGER NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS sessions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    film_id INTEGER NOT NULL,
-    hall_id INTEGER NOT NULL,
-    datetime TEXT NOT NULL,
-    price REAL,
-    FOREIGN KEY(film_id) REFERENCES films(id),
-    FOREIGN KEY(hall_id) REFERENCES halls(id)
+    id SERIAL PRIMARY KEY,
+    film_id INTEGER NOT NULL REFERENCES films(id) ON DELETE CASCADE,
+    hall_id INTEGER NOT NULL REFERENCES halls(id) ON DELETE CASCADE,
+    datetime TIMESTAMP NOT NULL,
+    price REAL
 );
 
 CREATE TABLE IF NOT EXISTS bookings (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    session_id INTEGER NOT NULL,
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    session_id INTEGER NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
     seat_number INTEGER NOT NULL,
-    status TEXT NOT NULL,
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY(user_id) REFERENCES users(id),
-    FOREIGN KEY(session_id) REFERENCES sessions(id)
+    status TEXT NOT NULL DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT NOW()
 );

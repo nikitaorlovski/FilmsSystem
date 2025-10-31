@@ -1,5 +1,5 @@
-def main():
-    pass
-    
-if __name__ == "__main__":
-    main()
+from pydantic import BaseModel
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str = "Bearer"

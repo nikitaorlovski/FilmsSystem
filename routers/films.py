@@ -1,5 +1,7 @@
-def main():
-    pass
-    
-if __name__ == "__main__":
-    main()
+from fastapi import APIRouter
+
+router = APIRouter()
+
+@router.get("/films")
+async def get_films():
+    return []

@@ -1,5 +1,16 @@
-def main():
+class DomainError(Exception):
+    """Base class for all domain-level exceptions."""
+
     pass
-    
-if __name__ == "__main__":
-    main()
+
+
+class InvalidCredentialsError(DomainError):
+    """Raised when credentials are invalid."""
+
+    pass
+
+
+class UserAlreadyExistsError(DomainError):
+    """Raised when trying to create a user with existing email."""
+
+    pass
