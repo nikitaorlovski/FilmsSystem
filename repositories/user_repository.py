@@ -6,10 +6,11 @@ from sqlalchemy.exc import IntegrityError
 
 from database.db import get_session
 from domain.exceptions import UserAlreadyExistsError
+from domain.interfaces.user_repository import IUserRepository
 from schemas.users import User, UserLogin
 
 
-class UserRepository:
+class UserRepository(IUserRepository):
     def __init__(self, session: AsyncSession):
         self.session = session
 
@@ -54,5 +55,5 @@ class UserRepository:
 
 async def get_user_repo(
     session: AsyncSession = Depends(get_session),
-) -> UserRepository:
+) -> IUserRepository:
     return UserRepository(session)

@@ -4,7 +4,28 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="db0807c4-bb87-4033-a957-b4b206d37f31" name="Изменения" comment="" />
+    <list default="true" id="db0807c4-bb87-4033-a957-b4b206d37f31" name="Изменения" comment="">
+      <change afterPath="$PROJECT_DIR$/domain/interfaces/film_repository.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/domain/interfaces/s3_repository.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/domain/interfaces/user_repository.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/repositories/s3_repository.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/schemas/films.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/services/film_service.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/services/image_service.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/utils/image_utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/config.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/security.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/security.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/database/schema.sql" beforeDir="false" afterPath="$PROJECT_DIR$/database/schema.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/domain/exceptions.py" beforeDir="false" afterPath="$PROJECT_DIR$/domain/exceptions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/films.db" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/poetry.lock" beforeDir="false" afterPath="$PROJECT_DIR$/poetry.lock" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pyproject.toml" beforeDir="false" afterPath="$PROJECT_DIR$/pyproject.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/repositories/film_repository.py" beforeDir="false" afterPath="$PROJECT_DIR$/repositories/film_repository.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/repositories/user_repository.py" beforeDir="false" afterPath="$PROJECT_DIR$/repositories/user_repository.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/routers/films.py" beforeDir="false" afterPath="$PROJECT_DIR$/routers/films.py" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -52,11 +73,15 @@
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
     &quot;git-widget-placeholder&quot;: &quot;main&quot;,
     &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.black.configuration.BlackFormatterConfigurable&quot;
   }
 }</component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="R:\Projects\FilmsSystem\domain" />
+    </key>
+  </component>
   <component name="RunManager">
     <configuration name="main" type="PythonConfigurationType" factoryName="Python">
       <module name="FilmsSystem" />

@@ -12,7 +12,8 @@ CREATE TABLE IF NOT EXISTS films (
     genre TEXT,
     duration INTEGER,
     rating REAL,
-    description TEXT
+    description TEXT,
+    image_url TEXT NULL
 );
 
 CREATE TABLE IF NOT EXISTS halls (

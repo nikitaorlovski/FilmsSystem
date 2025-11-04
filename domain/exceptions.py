@@ -14,3 +14,9 @@ class UserAlreadyExistsError(DomainError):
     """Raised when trying to create a user with existing email."""
 
     pass
+
+
+class FilmNotFound(DomainError):
+    """Raised when film not founded."""
+
+    pass

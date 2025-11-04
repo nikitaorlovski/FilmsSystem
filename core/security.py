@@ -2,7 +2,6 @@ import datetime
 
 import bcrypt
 import jwt
-from pydantic import EmailStr
 
 from core.config import settings
 

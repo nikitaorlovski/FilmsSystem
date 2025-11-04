@@ -13,9 +13,20 @@ class AuthJWT(BaseModel):
     refresh_token_expire_days: int = 7
 
 
+class S3Settings(BaseModel):
+    endpoint_url: str
+    public_url: str
+    access_key: str
+    secret_key: str
+    account_id: str
+    bucket_name: str
+    region: str = "auto"
+
+
 class Settings(BaseSettings):
     ALGORITHM: str
     auth_jwt: AuthJWT = AuthJWT()
+    s3: S3Settings
 
     model_config = SettingsConfigDict(
         env_file=str(ROOT / ".env"),
