@@ -1,0 +1,9 @@
+from typing import Protocol
+
+from schemas.halls import HallCreate, Hall
+
+
+class IHallRepository(Protocol):
+    async def add_hall(self, hall: HallCreate): ...
+    async def get_all_halls(self) -> list[Hall]: ...
+    async def delete_hall(self, id) -> None: ...

@@ -20,3 +20,9 @@ class FilmNotFound(DomainError):
     """Raised when film not founded."""
 
     pass
+
+
+class HallNotFound(DomainError):
+    """Raised when hall not founded."""
+
+    pass
