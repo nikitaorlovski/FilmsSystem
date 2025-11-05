@@ -13,7 +13,7 @@ class FilmRepository(IFilmRepository):
     async def get_all_films(self) -> list[Film]:
         query = text(
             """
-            SELECT id, title, genre, duration, rating, description, image_url
+            SELECT id, title, genre, duration, rating, description, image_url, is_active
             FROM films
             ORDER BY rating DESC
         """
@@ -29,7 +29,7 @@ class FilmRepository(IFilmRepository):
             """
             INSERT INTO films (title, genre, duration, rating, description, image_url)
             VALUES (:title, :genre, :duration, :rating, :description, :image_url)
-            RETURNING id, title, genre, duration, rating, description, image_url
+            RETURNING id, title, genre, duration, rating, description, image_url, is_active
         """
         )
 
@@ -46,7 +46,7 @@ class FilmRepository(IFilmRepository):
         result = await self.session.execute(
             text(
                 """
-                SELECT id, title, genre, duration, rating, description, image_url
+                SELECT id, title, genre, duration, rating, description, image_url, is_active
                 FROM films
                 WHERE id = :id
             """

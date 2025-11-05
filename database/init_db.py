@@ -4,12 +4,14 @@ from database.db import engine
 
 async def init_db():
     with open("database/schema.sql", "r", encoding="utf-8") as f:
-        schema_sql = f.read()
+        raw = f.read()
 
-    statements = [stmt.strip() for stmt in schema_sql.split(";") if stmt.strip()]
+    # Разбиваем по пустым строкам
+    blocks = [b.strip() for b in raw.split("\n\n") if b.strip()]
 
     async with engine.begin() as conn:
-        for stmt in statements:
-            await conn.execute(text(stmt))
+        for block in blocks:
+            print("Executing block:\n", block[:80], "...")
+            await conn.exec_driver_sql(block)
 
-    print("Database initialized")
+    print("✅ Database initialized")

@@ -6,6 +6,7 @@ from database.init_db import init_db
 from routers.auth import router as auth_router
 from routers.films import router as film_router
 from routers.halls import router as hall_router
+from routers.sessions import router as session_router
 
 
 @asynccontextmanager
@@ -19,6 +20,7 @@ app = FastAPI(lifespan=lifespan)
 app.include_router(auth_router)
 app.include_router(film_router)
 app.include_router(hall_router)
+app.include_router(session_router)
 
 
 @app.get("/healthcheck")

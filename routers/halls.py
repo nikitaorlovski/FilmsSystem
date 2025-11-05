@@ -15,8 +15,10 @@ async def add_hall(
     return await repository.add_hall(hall)
 
 
-@router.get("/")
-async def get_halls(repository: HallRepository = Depends(get_hall_repository)):
+@router.get("/", response_model=list[Hall])
+async def get_halls(
+    repository: HallRepository = Depends(get_hall_repository),
+) -> list[Hall]:
     return await repository.get_all_halls()
 
 

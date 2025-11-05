@@ -1,11 +1,12 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
 
 class NewFilm(BaseModel):
     title: str
     genre: str
-    duration: int
-    rating: float
-    description: str
+    duration: int = Field(..., ge=0)
+    rating: float = Field(..., ge=0, le=10)
+    description: str | None = None
 
 
 class Film(BaseModel):
@@ -14,5 +15,6 @@ class Film(BaseModel):
     genre: str
     duration: int
     rating: float
-    description: str
-    image_url: str | None
+    description: str | None = None
+    is_active: bool
+    image_url: str | None = None

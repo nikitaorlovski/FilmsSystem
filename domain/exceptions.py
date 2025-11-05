@@ -26,3 +26,9 @@ class HallNotFound(DomainError):
     """Raised when hall not founded."""
 
     pass
+
+
+class SessionConflictError(DomainError):
+    """Hall already has another session in this time."""
+
+    pass
