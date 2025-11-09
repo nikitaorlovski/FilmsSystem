@@ -1,15 +1,16 @@
 from domain.exceptions import SessionConflictError
 from fastapi import Depends, HTTPException
-from sqlalchemy import text, select
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import DBAPIError
 import asyncpg
 from domain.exceptions import FilmNotFound, HallNotFound
 from database.db import get_session
+from domain.interfaces.session_repository import ISessionRepository
 from schemas.sessions import Session, NewSession
 
 
-class SessionRepository:
+class SessionRepository(ISessionRepository):
     def __init__(self, session: AsyncSession):
         self.session = session
 
