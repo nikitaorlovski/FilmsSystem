@@ -42,5 +42,11 @@ async def delete_film(id: int, service: FilmService = Depends(get_film_service))
 
 
 @router.get("/{id}/sessions")
-async def get_session(id: int):
-    pass
+async def get_sessions(
+    id: int,
+    service: FilmService = Depends(get_film_service),
+):
+    try:
+        return await service.get_sessions(id)
+    except FilmNotFound:
+        raise HTTPException(status_code=404, detail="Film not found")

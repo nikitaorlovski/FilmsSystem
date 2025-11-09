@@ -1,0 +1,9 @@
+from typing import Protocol
+from schemas.bookings import Booking, NewBooking
+
+
+class IBookingRepository(Protocol):
+
+    async def create(self, user_id: int, data: NewBooking) -> Booking: ...
+    async def get_user_bookings(self, user_id: int) -> list[Booking]: ...
+    async def cancel(self, booking_id: int, user_id: int) -> Booking: ...

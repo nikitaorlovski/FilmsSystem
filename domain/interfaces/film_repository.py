@@ -1,5 +1,6 @@
 from typing import Protocol
 from schemas.films import Film, NewFilm
+from schemas.sessions import Session
 
 
 class IFilmRepository(Protocol):
@@ -11,3 +12,5 @@ class IFilmRepository(Protocol):
     async def get_by_id(self, id: int) -> Film | None: ...
 
     async def delete(self, id: int) -> None: ...
+
+    async def get_sessions_by_film_id(self, film_id: int) -> list[Session]: ...

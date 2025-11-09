@@ -93,6 +93,133 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+CREATE OR REPLACE FUNCTION add_booking(
+    _user_id INT,
+    _session_id INT,
+    _seat_number INT
+)
+RETURNS SETOF bookings
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    _session sessions;
+BEGIN
+    SELECT *
+    INTO _session
+    FROM sessions
+    WHERE id = _session_id;
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Session % not found', _session_id;
+    END IF;
+    IF _seat_number <= 0 OR _seat_number > _session.total_seats THEN
+        RAISE EXCEPTION 'Invalid seat number %', _seat_number;
+    END IF;
+    IF _session.available_seats <= 0 THEN
+        RAISE EXCEPTION 'No available seats';
+    END IF;
+    IF EXISTS (
+        SELECT 1 FROM bookings
+        WHERE session_id = _session_id
+          AND seat_number = _seat_number
+          AND status = 'active'
+    ) THEN
+        RAISE EXCEPTION 'Seat % is already booked', _seat_number;
+    END IF;
+    UPDATE sessions
+    SET available_seats = available_seats - 1
+    WHERE id = _session_id;
+    RETURN QUERY
+    INSERT INTO bookings (user_id, session_id, seat_number)
+    VALUES (_user_id, _session_id, _seat_number)
+    RETURNING *;
+END;
+$$;
+
+
+CREATE OR REPLACE FUNCTION cancel_booking(
+    _booking_id INT,
+    _user_id INT
+)
+RETURNS SETOF bookings
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    _booking bookings;
+BEGIN
+    SELECT *
+    INTO _booking
+    FROM bookings
+    WHERE id = _booking_id;
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Booking % not found', _booking_id;
+    END IF;
+    IF _booking.user_id <> _user_id THEN
+        RAISE EXCEPTION 'Forbidden: booking does not belong to user';
+    END IF;
+    IF _booking.status <> 'active' THEN
+        RAISE EXCEPTION 'Booking already canceled';
+    END IF;
+    UPDATE sessions
+    SET available_seats = available_seats + 1
+    WHERE id = _booking.session_id;
+    UPDATE bookings
+    SET status = 'canceled'
+    WHERE id = _booking_id;
+    RETURN QUERY
+    SELECT *
+    FROM bookings
+    WHERE id = _booking_id;
+END;
+$$;
+
+DO $$
+BEGIN
+    BEGIN
+        ALTER TABLE bookings
+        ADD CONSTRAINT booking_status_check
+        CHECK (status IN ('active', 'canceled'));
+    EXCEPTION
+        WHEN duplicate_object THEN null;
+    END;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION check_active_bookings_limit()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    active_count INT;
+BEGIN
+    IF NEW.status = 'active' THEN
+        SELECT COUNT(*) INTO active_count
+        FROM bookings
+        WHERE user_id = NEW.user_id
+          AND status = 'active';
+        IF active_count >= 5 THEN
+            RAISE EXCEPTION
+                'User % cannot have more than 5 active bookings',
+                NEW.user_id;
+        END IF;
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_trigger WHERE tgname = 'trg_check_active_bookings_limit'
+    ) THEN
+        CREATE TRIGGER trg_check_active_bookings_limit
+        BEFORE INSERT ON bookings
+        FOR EACH ROW
+        EXECUTE FUNCTION check_active_bookings_limit();
+    END IF;
+END;
+$$;
+
+
 
 
 

@@ -36,6 +36,13 @@ class FilmService:
         await self.repository.delete(id)
         return "Film deleted"
 
+    async def get_sessions(self, film_id: int):
+        film = await self.repository.get_by_id(film_id)
+        if film is None:
+            raise FilmNotFound()
+
+        return await self.repository.get_sessions_by_film_id(film_id)
+
 
 async def get_film_service(
     repo: FilmRepository = Depends(get_film_repo),

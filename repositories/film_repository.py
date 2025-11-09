@@ -4,6 +4,7 @@ from fastapi import Depends
 from database.db import get_session
 from schemas.films import Film, NewFilm
 from domain.interfaces.film_repository import IFilmRepository
+from schemas.sessions import Session
 
 
 class FilmRepository(IFilmRepository):
@@ -66,6 +67,29 @@ class FilmRepository(IFilmRepository):
             {"id": id},
         )
         await self.session.commit()
+
+    async def get_sessions_by_film_id(self, film_id: int) -> list[Session]:
+        query = text(
+            """
+            SELECT
+                id,
+                film_id,
+                hall_id,
+                start_time,
+                price,
+                total_seats,
+                available_seats,
+                created_at
+            FROM sessions
+            WHERE film_id = :film_id
+            ORDER BY start_time;
+            """
+        )
+
+        result = await self.session.execute(query, {"film_id": film_id})
+        rows = result.fetchall()
+
+        return [Session(**row._mapping) for row in rows]
 
 
 async def get_film_repo(session: AsyncSession = Depends(get_session)):

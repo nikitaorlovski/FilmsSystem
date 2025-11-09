@@ -3,7 +3,7 @@ from domain.exceptions import FilmNotFound, HallNotFound, SessionConflictError
 from services.session_service import SessionService, get_session_service
 from schemas.sessions import NewSession, Session
 
-router = APIRouter()
+router = APIRouter(tags=["Sessions"])
 
 
 @router.post("/sessions/", response_model=Session)

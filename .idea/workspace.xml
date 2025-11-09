@@ -5,13 +5,20 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="db0807c4-bb87-4033-a957-b4b206d37f31" name="Изменения" comment="">
-      <change afterPath="$PROJECT_DIR$/Docker-compose.yaml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Dockerfile" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/domain/interfaces/session_repository.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/auth.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/domain/interfaces/booking_repository.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/repositories/booking_repository.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/routers/bookings.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/schemas/bookings.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/services/booking_service.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/database/db.py" beforeDir="false" afterPath="$PROJECT_DIR$/database/db.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/database/schema.sql" beforeDir="false" afterPath="$PROJECT_DIR$/database/schema.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/domain/interfaces/film_repository.py" beforeDir="false" afterPath="$PROJECT_DIR$/domain/interfaces/film_repository.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/repositories/session_repository.py" beforeDir="false" afterPath="$PROJECT_DIR$/repositories/session_repository.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/repositories/film_repository.py" beforeDir="false" afterPath="$PROJECT_DIR$/repositories/film_repository.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/routers/films.py" beforeDir="false" afterPath="$PROJECT_DIR$/routers/films.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/routers/sessions.py" beforeDir="false" afterPath="$PROJECT_DIR$/routers/sessions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/services/film_service.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/film_service.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -110,5 +117,15 @@
       <updated>1761737984870</updated>
     </task>
     <servers />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/core/security.py</url>
+          <option name="timeStamp" value="2" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
 </project>
