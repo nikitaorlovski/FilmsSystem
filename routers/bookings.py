@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from schemas.bookings import Booking, NewBooking
 from services.booking_service import BookingService, get_booking_service
-from core.auth import get_current_user_id
+from core.auth import get_current_user_id, admin_required
 from domain.exceptions import DomainError
 from fastapi import HTTPException
 
@@ -38,3 +38,10 @@ async def cancel_booking(
         return await service.cancel(booking_id, user_id)
     except DomainError as e:
         raise HTTPException(status_code=409, detail=str(e))
+
+
+@router.get("/", response_model=list[Booking], dependencies=[Depends(admin_required)])
+async def get_all_bookings(
+    service: BookingService = Depends(get_booking_service),
+):
+    return await service.get_all()

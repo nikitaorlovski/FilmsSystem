@@ -1,4 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
+
+from core.auth import admin_required
 from domain.exceptions import FilmNotFound, HallNotFound, SessionConflictError
 from services.session_service import SessionService, get_session_service
 from schemas.sessions import NewSession, Session
@@ -6,7 +8,9 @@ from schemas.sessions import NewSession, Session
 router = APIRouter(tags=["Sessions"])
 
 
-@router.post("/sessions/", response_model=Session)
+@router.post(
+    "/sessions/", response_model=Session, dependencies=[Depends(admin_required)]
+)
 async def add_session(
     new_session: NewSession,
     service: SessionService = Depends(get_session_service),

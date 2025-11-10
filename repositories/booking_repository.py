@@ -89,6 +89,18 @@ class BookingRepository(IBookingRepository):
         row = result.fetchone()
         return Booking(**row._mapping)
 
+    async def get_all(self) -> list[Booking]:
+        query = text(
+            """
+            SELECT id, user_id, session_id, seat_number, status, created_at
+            FROM bookings
+            ORDER BY created_at DESC
+        """
+        )
+        result = await self.session.execute(query)
+        rows = result.fetchall()
+        return [Booking(**row._mapping) for row in rows]
+
 
 async def get_booking_repo(
     session: AsyncSession = Depends(get_session),

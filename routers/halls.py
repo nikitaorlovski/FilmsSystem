@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 from starlette.exceptions import HTTPException
 
+from core.auth import admin_required
 from domain.exceptions import HallNotFound
 from repositories.hall_repository import HallRepository, get_hall_repository
 from schemas.halls import HallCreate, Hall
@@ -8,7 +9,7 @@ from schemas.halls import HallCreate, Hall
 router = APIRouter(prefix="/halls", tags=["Halls"])
 
 
-@router.post("/", response_model=Hall)
+@router.post("/", response_model=Hall, dependencies=[Depends(admin_required)])
 async def add_hall(
     hall: HallCreate, repository: HallRepository = Depends(get_hall_repository)
 ) -> Hall:
@@ -22,7 +23,7 @@ async def get_halls(
     return await repository.get_all_halls()
 
 
-@router.delete("/{id}", status_code=204)
+@router.delete("/{id}", status_code=204, dependencies=[Depends(admin_required)])
 async def delete_hall(
     id: int, repository: HallRepository = Depends(get_hall_repository)
 ):

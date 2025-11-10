@@ -52,6 +52,16 @@ class UserRepository(IUserRepository):
 
         return UserLogin(**row._mapping) if row else None
 
+    async def get_by_id(self, user_id: int) -> User | None:
+        result = await self.session.execute(
+            text("SELECT id, name, email, role FROM users WHERE id = :id"),
+            {"id": user_id},
+        )
+        row = result.fetchone()
+        if row is None:
+            return None
+        return User(**row._mapping)
+
 
 async def get_user_repo(
     session: AsyncSession = Depends(get_session),

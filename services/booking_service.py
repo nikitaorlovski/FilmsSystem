@@ -18,6 +18,9 @@ class BookingService:
     async def cancel(self, booking_id: int, user_id: int) -> Booking:
         return await self.repo.cancel(booking_id, user_id)
 
+    async def get_all(self) -> list[Booking]:
+        return await self.repo.get_all()
+
 
 def get_booking_service(
     repo: BookingRepository = Depends(get_booking_repo),
