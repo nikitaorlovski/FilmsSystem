@@ -12,6 +12,49 @@ router = APIRouter(prefix="/films", tags=["Films"])
 async def get_films(service: FilmService = Depends(get_film_service)) -> list[Film]:
     return await service.get_all()
 
+@router.get("/{id}", response_model=Film)
+async def get_film(id: int, service: FilmService = Depends(get_film_service)) -> Film:
+    film = await service.get_by_id(id)
+    if not film:
+        raise HTTPException(status_code=404, detail="Film not found")
+    return film
+
+@router.put("/{id}", dependencies=[Depends(admin_required)])
+async def update_film(
+        id: int,
+        title: str = Form(...),
+        genre: str = Form(...),
+        duration: int = Form(...),
+        rating: float = Form(...),
+        description: str = Form(...),
+        is_active: bool = Form(True),
+        image: UploadFile | None = File(None),
+        service: FilmService = Depends(get_film_service),
+):
+    try:
+        print(f"Обновление фильма {id} с данными:")
+        print(f"Title: {title}, Genre: {genre}, Duration: {duration}")
+        print(f"Rating: {rating}, Active: {is_active}")
+
+        updated_film = NewFilm(
+            title=title,
+            genre=genre,
+            duration=duration,
+            rating=rating,
+            description=description,
+        )
+        result = await service.update_film(id, updated_film, image, is_active)
+        print(f"Фильм успешно обновлен: {result}")
+        return result
+    except FilmNotFound:
+        raise HTTPException(status_code=404, detail="Film not found")
+    except Exception as e:
+        print(f"Ошибка при обновлении фильма: {str(e)}")
+        print(f"Тип ошибки: {type(e)}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
 
 @router.post("/", dependencies=[Depends(admin_required)])
 async def add_film(

@@ -18,6 +18,9 @@ class FilmService:
     async def get_all(self) -> list[Film]:
         return await self.repository.get_all_films()
 
+    async def get_by_id(self, id: int) -> Film:
+        return await self.repository.get_by_id(id)
+
     async def add_film(self, film: NewFilm, image: UploadFile | None = None):
         image_url = None
         if image:
@@ -42,6 +45,36 @@ class FilmService:
             raise FilmNotFound()
 
         return await self.repository.get_sessions_by_film_id(film_id)
+
+    async def update_film(
+            self,
+            film_id: int,
+            film_data: NewFilm,
+            image: UploadFile | None = None,
+            is_active: bool = True
+    ) -> Film:
+        # Проверяем существование фильма
+        existing_film = await self.repository.get_by_id(film_id)
+        if existing_film is None:
+            raise FilmNotFound()
+
+        image_url = existing_film.image_url
+
+        # Если загружено новое изображение
+        if image:
+            # Удаляем старое изображение если оно есть
+            if existing_film.image_url:
+                await self.image_service.delete(image_url=existing_film.image_url)
+            # Загружаем новое изображение
+            image_url = await self.image_service.upload(image)
+
+        return await self.repository.update_film(
+            film_id=film_id,
+            film_data=film_data,
+            image_url=image_url,
+            is_active=is_active
+        )
+
 
 
 async def get_film_service(

@@ -45,3 +45,18 @@ async def get_all_bookings(
     service: BookingService = Depends(get_booking_service),
 ):
     return await service.get_all()
+
+@router.get("/{id}/bookings")
+async def get_session_bookings(
+    id: int,
+    service: BookingService = Depends(get_booking_service)
+):
+    """
+    Получить все бронирования для указанного сеанса
+    """
+    try:
+        all_bookings = await service.get_all()
+        session_bookings = [booking for booking in all_bookings if booking.session_id == id]
+        return session_bookings
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

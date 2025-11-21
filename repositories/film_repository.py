@@ -2,6 +2,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import Depends
 from database.db import get_session
+from domain.exceptions import FilmNotFound
 from schemas.films import Film, NewFilm
 from domain.interfaces.film_repository import IFilmRepository
 from schemas.sessions import Session
@@ -60,6 +61,48 @@ class FilmRepository(IFilmRepository):
             return None
 
         return Film(**row._mapping)
+
+    async def update_film(
+            self,
+            film_id: int,
+            film_data: NewFilm,
+            image_url: str | None = None,
+            is_active: bool = True
+    ) -> Film:
+        query = text(
+            """
+            UPDATE films 
+            SET title = :title, genre = :genre, duration = :duration, rating = :rating, 
+                description = :description, is_active = :is_active, image_url = :image_url
+            WHERE id = :film_id
+            RETURNING id, title, genre, duration, rating, description, image_url, is_active
+            """
+        )
+
+        values = {
+            "title": film_data.title,
+            "genre": film_data.genre,
+            "duration": film_data.duration,
+            "rating": film_data.rating,
+            "description": film_data.description,
+            "is_active": is_active,
+            "image_url": image_url,
+            "film_id": film_id
+        }
+
+        try:
+            result = await self.session.execute(query, values)
+            row = result.fetchone()
+            await self.session.commit()
+
+            if not row:
+                raise FilmNotFound()
+
+            return Film(**dict(row._mapping))
+
+        except Exception as e:
+            await self.session.rollback()
+            raise e
 
     async def delete(self, id: int) -> None:
         await self.session.execute(

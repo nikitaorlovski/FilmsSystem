@@ -46,11 +46,17 @@ CREATE TABLE IF NOT EXISTS bookings (
 
 DO $$
 BEGIN
-    IF NOT EXISTS (
+    IF EXISTS (
         SELECT 1 FROM pg_constraint WHERE conname = 'unique_seat'
     ) THEN
-        ALTER TABLE bookings
-        ADD CONSTRAINT unique_seat UNIQUE(session_id, seat_number);
+        ALTER TABLE bookings DROP CONSTRAINT unique_seat;
+    END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_indexes WHERE indexname = 'unique_active_seat'
+    ) THEN
+        CREATE UNIQUE INDEX unique_active_seat
+        ON bookings (session_id, seat_number)
+        WHERE status = 'active';
     END IF;
 END
 $$;
@@ -114,9 +120,6 @@ BEGIN
     IF _seat_number <= 0 OR _seat_number > _session.total_seats THEN
         RAISE EXCEPTION 'Invalid seat number %', _seat_number;
     END IF;
-    IF _session.available_seats <= 0 THEN
-        RAISE EXCEPTION 'No available seats';
-    END IF;
     IF EXISTS (
         SELECT 1 FROM bookings
         WHERE session_id = _session_id
@@ -125,9 +128,6 @@ BEGIN
     ) THEN
         RAISE EXCEPTION 'Seat % is already booked', _seat_number;
     END IF;
-    UPDATE sessions
-    SET available_seats = available_seats - 1
-    WHERE id = _session_id;
     RETURN QUERY
     INSERT INTO bookings (user_id, session_id, seat_number)
     VALUES (_user_id, _session_id, _seat_number)
@@ -372,7 +372,11 @@ RETURNS TRIGGER AS $$
 BEGIN
     IF OLD.status = 'active' AND NEW.status = 'canceled' THEN
         UPDATE sessions
-        SET available_seats = available_seats + 1
+        SET available_seats = (
+            SELECT total_seats - COUNT(*)
+            FROM bookings
+            WHERE session_id = NEW.session_id AND status = 'active'
+        )
         WHERE id = NEW.session_id;
     END IF;
     RETURN NEW;
@@ -468,7 +472,11 @@ SELECT
     f.title AS film_title,
     s.start_time,
     b.seat_number,
-    b.status
+    CASE
+        WHEN b.status = 'canceled' THEN 'canceled'
+        WHEN s.start_time < NOW() THEN 'expired'
+        ELSE 'active'
+    END AS status
 FROM bookings b
 JOIN users u ON u.id = b.user_id
 JOIN sessions s ON s.id = b.session_id
@@ -496,7 +504,14 @@ SELECT
 FROM films
 GROUP BY genre;
 
-
+CREATE OR REPLACE VIEW vw_user_info AS
+SELECT
+    id,
+    name,
+    email,
+    role,
+    created_at
+FROM users;
 
 
 

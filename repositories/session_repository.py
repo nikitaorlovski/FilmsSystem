@@ -58,6 +58,25 @@ class SessionRepository(ISessionRepository):
 
         return Session(**row._mapping)
 
+    async def get_all_sessions(self) -> list[Session]:
+        query = text("SELECT * FROM sessions ORDER BY start_time DESC")
+        result = await self.session.execute(query)
+        return [Session(**row._mapping) for row in result.fetchall()]
+
+    async def delete_session(self, session_id: int) -> None:
+        bookings_check = await self.session.execute(
+            text("SELECT 1 FROM bookings WHERE session_id = :session_id AND status = 'active'"),
+            {"session_id": session_id}
+        )
+        if bookings_check.fetchone():
+            raise HTTPException(status_code=400, detail="Cannot delete session with active bookings")
+
+        await self.session.execute(
+            text("DELETE FROM sessions WHERE id = :session_id"),
+            {"session_id": session_id}
+        )
+        await self.session.commit()
+
 
 def get_session_repository(session: AsyncSession = Depends(get_session)):
     return SessionRepository(session)
