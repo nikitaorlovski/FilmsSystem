@@ -14,3 +14,10 @@ class IFilmRepository(Protocol):
     async def delete(self, id: int) -> None: ...
 
     async def get_sessions_by_film_id(self, film_id: int) -> list[Session]: ...
+    async def update_film(
+            self,
+            film_id: int,
+            film_data: NewFilm,
+            image_url: str | None = None,
+            is_active: bool = True
+    ) -> Film: ...

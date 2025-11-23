@@ -219,40 +219,6 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION get_available_seats(_session_id INT)
-RETURNS TABLE(seat_number INT) AS $$
-BEGIN
-    RETURN QUERY
-    SELECT gs.seat_number
-    FROM generate_series(1, (SELECT total_seats FROM sessions WHERE id = _session_id)) AS gs(seat_number)
-    WHERE gs.seat_number NOT IN (
-        SELECT seat_number FROM bookings
-        WHERE session_id = _session_id AND status = 'active'
-    )
-    ORDER BY gs.seat_number;
-END;
-$$ LANGUAGE plpgsql;
-
-
-CREATE OR REPLACE FUNCTION get_user_bookings(_user_id INT)
-RETURNS TABLE(
-    booking_id INT,
-    film_title TEXT,
-    start_time TIMESTAMPTZ,
-    seat_number INT,
-    status TEXT
-) AS $$
-BEGIN
-    RETURN QUERY
-    SELECT b.id, f.title, s.start_time, b.seat_number, b.status
-    FROM bookings b
-    JOIN sessions s ON b.session_id = s.id
-    JOIN films f ON s.film_id = f.id
-    WHERE b.user_id = _user_id
-    ORDER BY s.start_time DESC;
-END;
-$$ LANGUAGE plpgsql;
-
 CREATE OR REPLACE FUNCTION get_film_sessions(_film_id INT)
 RETURNS SETOF sessions AS $$
 BEGIN
@@ -260,34 +226,6 @@ BEGIN
     SELECT * FROM sessions
     WHERE film_id = _film_id
     ORDER BY start_time;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE OR REPLACE FUNCTION update_session_price(_session_id INT, _new_price NUMERIC)
-RETURNS VOID AS $$
-BEGIN
-    UPDATE sessions
-    SET price = _new_price
-    WHERE id = _session_id;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE OR REPLACE FUNCTION set_film_status(_film_id INT, _is_active BOOLEAN)
-RETURNS VOID AS $$
-BEGIN
-    UPDATE films
-    SET is_active = _is_active
-    WHERE id = _film_id;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE OR REPLACE FUNCTION move_session(_session_id INT, _new_hall_id INT, _new_start TIMESTAMPTZ)
-RETURNS VOID AS $$
-BEGIN
-    UPDATE sessions
-    SET hall_id = _new_hall_id,
-        start_time = _new_start
-    WHERE id = _session_id;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -420,14 +358,6 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE VIEW vw_films_full AS
-SELECT
-    f.*,
-    COUNT(s.id) AS session_count
-FROM films f
-LEFT JOIN sessions s ON s.film_id = f.id
-GROUP BY f.id;
-
 CREATE OR REPLACE VIEW vw_upcoming_sessions AS
 SELECT *
 FROM sessions
@@ -438,11 +368,6 @@ CREATE OR REPLACE VIEW vw_active_bookings AS
 SELECT *
 FROM bookings
 WHERE status = 'active';
-
-CREATE OR REPLACE VIEW vw_canceled_bookings AS
-SELECT *
-FROM bookings
-WHERE status = 'canceled';
 
 CREATE OR REPLACE VIEW vw_sessions_with_halls AS
 SELECT
@@ -487,22 +412,11 @@ CREATE OR REPLACE VIEW vw_hall_usage AS
 SELECT
     h.id AS hall_id,
     h.name,
+    h.capacity,
     COUNT(s.id) AS total_sessions
 FROM halls h
 LEFT JOIN sessions s ON s.hall_id = h.id
-GROUP BY h.id;
-
-CREATE OR REPLACE VIEW vw_today_sessions AS
-SELECT *
-FROM sessions
-WHERE start_time::date = NOW()::date;
-
-CREATE OR REPLACE VIEW vw_films_by_genre AS
-SELECT
-    genre,
-    COUNT(*) AS film_count
-FROM films
-GROUP BY genre;
+GROUP BY h.id, h.name, h.capacity;
 
 CREATE OR REPLACE VIEW vw_user_info AS
 SELECT
@@ -513,8 +427,222 @@ SELECT
     created_at
 FROM users;
 
+CREATE OR REPLACE VIEW vw_top_rated_films AS
+SELECT
+    id,
+    title,
+    genre,
+    duration,
+    rating,
+    description,
+    is_active,
+    image_url
+FROM films
+WHERE rating IS NOT NULL
+ORDER BY rating DESC;
 
+CREATE OR REPLACE VIEW vw_films_with_upcoming_sessions AS
+SELECT DISTINCT
+    f.id,
+    f.title,
+    f.genre,
+    f.duration,
+    f.rating,
+    f.description,
+    f.image_url,
+    MIN(s.start_time) AS next_session
+FROM films f
+JOIN sessions s ON s.film_id = f.id
+WHERE s.start_time > NOW()
+GROUP BY f.id;
 
+CREATE OR REPLACE VIEW vw_popular_last_week AS
+SELECT
+    f.id,
+    f.title,
+    f.genre,
+    f.duration,
+    f.rating,
+    f.description,
+    f.image_url,
+    COUNT(b.id) AS weekly_bookings
+FROM films f
+LEFT JOIN sessions s ON s.film_id = f.id
+LEFT JOIN bookings b
+    ON b.session_id = s.id
+    AND b.status = 'active'
+    AND b.created_at >= NOW() - INTERVAL '7 days'
+GROUP BY f.id
+ORDER BY weekly_bookings DESC;
 
+CREATE OR REPLACE FUNCTION delete_session(_session_id INT)
+RETURNS VOID AS $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM sessions WHERE id = _session_id) THEN
+        RAISE EXCEPTION 'Session % not found', _session_id;
+    END IF;
+    IF EXISTS (
+        SELECT 1
+        FROM bookings
+        WHERE session_id = _session_id AND status = 'active'
+    ) THEN
+        RAISE EXCEPTION 'Cannot delete session with active bookings';
+    END IF;
+    DELETE FROM sessions WHERE id = _session_id;
+END;
+$$ LANGUAGE plpgsql;
 
+CREATE OR REPLACE FUNCTION add_film(
+    _title TEXT,
+    _genre TEXT,
+    _duration INT,
+    _rating FLOAT,
+    _description TEXT,
+    _image_url TEXT DEFAULT NULL
+)
+RETURNS SETOF films AS $$
+BEGIN
+    IF _rating < 0 OR _rating > 10 THEN
+        RAISE EXCEPTION 'Rating must be between 0 and 10';
+    END IF;
+    IF _duration <= 0 THEN
+        RAISE EXCEPTION 'Duration must be positive';
+    END IF;
+    IF _title IS NULL OR _title = '' THEN
+        RAISE EXCEPTION 'Title is required';
+    END IF;
+    IF _genre IS NULL OR _genre = '' THEN
+        RAISE EXCEPTION 'Genre is required';
+    END IF;
+    RETURN QUERY
+    INSERT INTO films (title, genre, duration, rating, description, image_url)
+    VALUES (_title, _genre, _duration, _rating, _description, _image_url)
+    RETURNING *;
+END;
+$$ LANGUAGE plpgsql;
 
+CREATE OR REPLACE FUNCTION update_film(
+    _film_id INT,
+    _title TEXT,
+    _genre TEXT,
+    _duration INT,
+    _rating FLOAT,
+    _description TEXT,
+    _is_active BOOLEAN,
+    _image_url TEXT DEFAULT NULL
+)
+RETURNS SETOF films AS $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM films WHERE id = _film_id) THEN
+        RAISE EXCEPTION 'Film not found';
+    END IF;
+    IF _rating < 0 OR _rating > 10 THEN
+        RAISE EXCEPTION 'Rating must be between 0 and 10';
+    END IF;
+    IF _duration <= 0 THEN
+        RAISE EXCEPTION 'Duration must be positive';
+    END IF;
+    IF _title IS NULL OR _title = '' THEN
+        RAISE EXCEPTION 'Title is required';
+    END IF;
+    IF _genre IS NULL OR _genre = '' THEN
+        RAISE EXCEPTION 'Genre is required';
+    END IF;
+    RETURN QUERY
+    UPDATE films
+    SET title = _title,
+        genre = _genre,
+        duration = _duration,
+        rating = _rating,
+        description = _description,
+        is_active = _is_active,
+        image_url = _image_url
+    WHERE id = _film_id
+    RETURNING *;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION add_hall(_name TEXT, _capacity INT)
+RETURNS SETOF halls AS $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM halls WHERE LOWER(name) = LOWER(_name)) THEN
+        RAISE EXCEPTION 'Hall with name "%" already exists', _name;
+    END IF;
+    IF _capacity <= 0 THEN
+        RAISE EXCEPTION 'Capacity must be positive';
+    END IF;
+    IF _name IS NULL OR _name = '' THEN
+        RAISE EXCEPTION 'Hall name is required';
+    END IF;
+    RETURN QUERY
+    INSERT INTO halls (name, capacity)
+    VALUES (_name, _capacity)
+    RETURNING *;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION delete_hall(_hall_id INT)
+RETURNS VOID AS $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM halls WHERE id = _hall_id) THEN
+        RAISE EXCEPTION 'Hall not found';
+    END IF;
+    IF EXISTS (SELECT 1 FROM sessions WHERE hall_id = _hall_id AND start_time > NOW()) THEN
+        RAISE EXCEPTION 'Cannot delete hall with future sessions';
+    END IF;
+    DELETE FROM halls WHERE id = _hall_id;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION create_user(_name TEXT, _email TEXT, _password_hash BYTEA)
+RETURNS TABLE(
+    id INT,
+    name TEXT,
+    email TEXT,
+    role TEXT
+) AS $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM users WHERE users.email = _email) THEN
+        RAISE EXCEPTION 'User with email "%" already exists', _email;
+    END IF;
+    IF _name IS NULL OR _name = '' THEN
+        RAISE EXCEPTION 'User name is required';
+    END IF;
+    IF _email IS NULL OR _email = '' THEN
+        RAISE EXCEPTION 'Email is required';
+    END IF;
+    IF _password_hash IS NULL THEN
+        RAISE EXCEPTION 'Password hash is required';
+    END IF;
+    RETURN QUERY
+    INSERT INTO users (name, email, password_hash, role)
+    VALUES (_name, _email, _password_hash, 'user')
+    RETURNING users.id, users.name, users.email, users.role;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION get_user_bookings_detailed(_user_id INT)
+RETURNS TABLE(
+    booking_id INT,
+    user_id INT,
+    session_id INT,
+    seat_number INT,
+    status TEXT,
+    created_at TIMESTAMP,
+    film_title TEXT,
+    start_time TIMESTAMPTZ,
+    hall_name TEXT
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        b.id, b.user_id, b.session_id, b.seat_number, b.status, b.created_at,
+        f.title, s.start_time, h.name
+    FROM bookings b
+    JOIN sessions s ON s.id = b.session_id
+    JOIN films f ON f.id = s.film_id
+    JOIN halls h ON h.id = s.hall_id
+    WHERE b.user_id = _user_id
+    ORDER BY b.created_at DESC;
+END;
+$$ LANGUAGE plpgsql;

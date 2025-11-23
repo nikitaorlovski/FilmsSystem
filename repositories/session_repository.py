@@ -1,4 +1,4 @@
-from domain.exceptions import SessionConflictError
+from domain.exceptions import SessionConflictError, SessionNotFoundError, SessionHasActiveBookingsError
 from fastapi import Depends, HTTPException
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -64,18 +64,29 @@ class SessionRepository(ISessionRepository):
         return [Session(**row._mapping) for row in result.fetchall()]
 
     async def delete_session(self, session_id: int) -> None:
-        bookings_check = await self.session.execute(
-            text("SELECT 1 FROM bookings WHERE session_id = :session_id AND status = 'active'"),
-            {"session_id": session_id}
-        )
-        if bookings_check.fetchone():
-            raise HTTPException(status_code=400, detail="Cannot delete session with active bookings")
+        query = text("SELECT delete_session(:session_id);")
 
-        await self.session.execute(
-            text("DELETE FROM sessions WHERE id = :session_id"),
-            {"session_id": session_id}
-        )
-        await self.session.commit()
+        try:
+            await self.session.execute(
+                query,
+                {"session_id": session_id}
+            )
+            await self.session.commit()
+
+        except DBAPIError as e:
+            cause = getattr(e.orig, "__cause__", None)
+
+            if isinstance(cause, asyncpg.exceptions.RaiseError):
+                msg = str(cause).replace("ERROR:  ", "")
+
+                if "not found" in msg.lower():
+                    raise SessionNotFoundError(msg)
+                elif "active bookings" in msg.lower():
+                    raise SessionHasActiveBookingsError(msg)
+                else:
+                    raise SessionConflictError(msg)
+
+            raise
 
 
 def get_session_repository(session: AsyncSession = Depends(get_session)):

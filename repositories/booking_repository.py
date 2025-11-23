@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from database.db import get_session
 from domain.interfaces.booking_repository import IBookingRepository
 from domain.exceptions import DomainError
-from schemas.bookings import Booking, NewBooking
+from schemas.bookings import Booking, NewBooking, BookingDetailed
 import asyncpg
 from sqlalchemy.exc import DBAPIError
 
@@ -45,19 +45,20 @@ class BookingRepository(IBookingRepository):
         row = result.fetchone()
         return Booking(**row._mapping)
 
-    async def get_user_bookings(self, user_id: int) -> list[Booking]:
+    async def get_user_bookings(self, user_id: int) -> list[BookingDetailed]:
         query = text(
             """
-            SELECT id, user_id, session_id, seat_number, status, created_at
-            FROM bookings
-            WHERE user_id = :user_id
-            ORDER BY created_at DESC;
+            SELECT * FROM get_user_bookings_detailed(:user_id);
         """
         )
 
-        result = await self.session.execute(query, {"user_id": user_id})
-        rows = result.fetchall()
-        return [Booking(**row._mapping) for row in rows]
+        try:
+            result = await self.session.execute(query, {"user_id": user_id})
+            rows = result.fetchall()
+            return [BookingDetailed(**row._mapping) for row in rows]
+
+        except DBAPIError as e:
+            raise DomainError("Ошибка при получении бронирований")
 
     async def cancel(self, booking_id: int, user_id: int) -> Booking:
         query = text(
@@ -103,6 +104,6 @@ class BookingRepository(IBookingRepository):
 
 
 async def get_booking_repo(
-    session: AsyncSession = Depends(get_session),
+        session: AsyncSession = Depends(get_session),
 ) -> BookingRepository:
     return BookingRepository(session)

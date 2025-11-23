@@ -5,8 +5,6 @@ from database.db import engine
 async def init_db():
     with open("database/schema.sql", "r", encoding="utf-8") as f:
         raw = f.read()
-
-    # Разбиваем по пустым строкам
     blocks = [b.strip() for b in raw.split("\n\n") if b.strip()]
 
     async with engine.begin() as conn:

@@ -8,9 +8,9 @@ from services.image_service import ImageService, get_image_service
 
 class FilmService:
     def __init__(
-        self,
-        repository: IFilmRepository,
-        image_service: ImageService,
+            self,
+            repository: IFilmRepository,
+            image_service: ImageService,
     ):
         self.repository = repository
         self.image_service = image_service
@@ -51,7 +51,8 @@ class FilmService:
             film_id: int,
             film_data: NewFilm,
             image: UploadFile | None = None,
-            is_active: bool = True
+            is_active: bool = True,
+            remove_image: bool = False  # ⭐ ДОБАВЛЯЕМ ПАРАМЕТР
     ) -> Film:
         # Проверяем существование фильма
         existing_film = await self.repository.get_by_id(film_id)
@@ -60,14 +61,22 @@ class FilmService:
 
         image_url = existing_film.image_url
 
+        # ⭐ ЕСЛИ УДАЛЯЕМ ИЗОБРАЖЕНИЕ
+        if remove_image and existing_film.image_url:
+            print(f"Удаляем изображение: {existing_film.image_url}")
+            await self.image_service.delete(image_url=existing_film.image_url)
+            image_url = None
+
         # Если загружено новое изображение
-        if image:
+        elif image:
+            print(f"Загружаем новое изображение")
             # Удаляем старое изображение если оно есть
             if existing_film.image_url:
                 await self.image_service.delete(image_url=existing_film.image_url)
             # Загружаем новое изображение
             image_url = await self.image_service.upload(image)
 
+        print(f"Финальный image_url: {image_url}")
         return await self.repository.update_film(
             film_id=film_id,
             film_data=film_data,
@@ -76,9 +85,8 @@ class FilmService:
         )
 
 
-
 async def get_film_service(
-    repo: FilmRepository = Depends(get_film_repo),
-    image_service: ImageService = Depends(get_image_service),
+        repo: FilmRepository = Depends(get_film_repo),
+        image_service: ImageService = Depends(get_image_service),
 ):
     return FilmService(repo, image_service)

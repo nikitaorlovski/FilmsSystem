@@ -2,10 +2,12 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import Depends
 from database.db import get_session
-from domain.exceptions import FilmNotFound
+from domain.exceptions import FilmNotFound, FilmValidationError, FilmAlreadyExistsError
 from schemas.films import Film, NewFilm
 from domain.interfaces.film_repository import IFilmRepository
 from schemas.sessions import Session
+import asyncpg
+from sqlalchemy.exc import DBAPIError
 
 
 class FilmRepository(IFilmRepository):
@@ -18,31 +20,69 @@ class FilmRepository(IFilmRepository):
             SELECT id, title, genre, duration, rating, description, image_url, is_active
             FROM films
             ORDER BY rating DESC
-        """
+            """
         )
-
         result = await self.session.execute(query)
         rows = result.fetchall()
-
         return [Film(**row._mapping) for row in rows]
 
     async def add_film(self, film: NewFilm, image_url: str | None = None) -> Film:
         query = text(
             """
-            INSERT INTO films (title, genre, duration, rating, description, image_url)
-            VALUES (:title, :genre, :duration, :rating, :description, :image_url)
-            RETURNING id, title, genre, duration, rating, description, image_url, is_active
-        """
+            SELECT * FROM add_film(
+                :title, 
+                :genre, 
+                :duration, 
+                :rating, 
+                :description, 
+                :image_url
+            );
+            """
         )
 
-        values = film.model_dump()
-        values["image_url"] = image_url
+        values = {
+            "title": film.title,
+            "genre": film.genre,
+            "duration": film.duration,
+            "rating": film.rating,
+            "description": film.description,
+            "image_url": image_url
+        }
 
-        result = await self.session.execute(query, values)
-        row = result.fetchone()
-        await self.session.commit()
+        try:
+            result = await self.session.execute(query, values)
+            row = result.fetchone()
+            await self.session.commit()
 
-        return Film(**dict(row._mapping))
+            if not row:
+                raise FilmValidationError("Failed to create film")
+
+            return Film(**dict(row._mapping))
+
+        except DBAPIError as e:
+            await self.session.rollback()
+            cause = getattr(e.orig, "__cause__", None)
+
+            if isinstance(cause, asyncpg.exceptions.RaiseError):
+                msg = str(cause).replace("ERROR:  ", "")
+
+                # Маппинг ошибок БД на доменные исключения
+                if "rating" in msg.lower() and "between" in msg.lower():
+                    raise FilmValidationError("Рейтинг должен быть от 0 до 10")
+                elif "duration" in msg.lower() and "positive" in msg.lower():
+                    raise FilmValidationError("Продолжительность должна быть положительной")
+                elif "title" in msg.lower() and "required" in msg.lower():
+                    raise FilmValidationError("Название фильма обязательно")
+                elif "genre" in msg.lower() and "required" in msg.lower():
+                    raise FilmValidationError("Жанр фильма обязателен")
+                else:
+                    raise FilmValidationError(f"Ошибка валидации: {msg}")
+
+            # Обработка ошибки уникальности (если добавим проверку на уникальность названия)
+            if "unique" in str(e).lower() and "title" in str(e).lower():
+                raise FilmAlreadyExistsError(f"Фильм с названием '{film.title}' уже существует")
+
+            raise FilmValidationError("Ошибка при создании фильма")
 
     async def get_by_id(self, id: int) -> Film | None:
         result = await self.session.execute(
@@ -51,7 +91,7 @@ class FilmRepository(IFilmRepository):
                 SELECT id, title, genre, duration, rating, description, image_url, is_active
                 FROM films
                 WHERE id = :id
-            """
+                """
             ),
             {"id": id},
         )
@@ -71,23 +111,28 @@ class FilmRepository(IFilmRepository):
     ) -> Film:
         query = text(
             """
-            UPDATE films 
-            SET title = :title, genre = :genre, duration = :duration, rating = :rating, 
-                description = :description, is_active = :is_active, image_url = :image_url
-            WHERE id = :film_id
-            RETURNING id, title, genre, duration, rating, description, image_url, is_active
+            SELECT * FROM update_film(
+                :film_id,
+                :title,
+                :genre,
+                :duration,
+                :rating,
+                :description,
+                :is_active,
+                :image_url
+            );
             """
         )
 
         values = {
+            "film_id": film_id,
             "title": film_data.title,
             "genre": film_data.genre,
             "duration": film_data.duration,
             "rating": film_data.rating,
             "description": film_data.description,
             "is_active": is_active,
-            "image_url": image_url,
-            "film_id": film_id
+            "image_url": image_url
         }
 
         try:
@@ -96,13 +141,32 @@ class FilmRepository(IFilmRepository):
             await self.session.commit()
 
             if not row:
-                raise FilmNotFound()
+                raise FilmNotFound(f"Film {film_id} not found")
 
             return Film(**dict(row._mapping))
 
-        except Exception as e:
+        except DBAPIError as e:
             await self.session.rollback()
-            raise e
+            cause = getattr(e.orig, "__cause__", None)
+
+            if isinstance(cause, asyncpg.exceptions.RaiseError):
+                msg = str(cause).replace("ERROR:  ", "")
+
+                # Маппинг ошибок БД на доменные исключения
+                if "Film not found" in msg:
+                    raise FilmNotFound(f"Film {film_id} not found")
+                elif "rating" in msg.lower() and "between" in msg.lower():
+                    raise FilmValidationError("Рейтинг должен быть от 0 до 10")
+                elif "duration" in msg.lower() and "positive" in msg.lower():
+                    raise FilmValidationError("Продолжительность должна быть положительной")
+                elif "title" in msg.lower() and "required" in msg.lower():
+                    raise FilmValidationError("Название фильма обязательно")
+                elif "genre" in msg.lower() and "required" in msg.lower():
+                    raise FilmValidationError("Жанр фильма обязателен")
+                else:
+                    raise FilmValidationError(f"Ошибка валидации: {msg}")
+
+            raise FilmValidationError("Ошибка при обновлении фильма")
 
     async def delete(self, id: int) -> None:
         await self.session.execute(
@@ -112,22 +176,10 @@ class FilmRepository(IFilmRepository):
         await self.session.commit()
 
     async def get_sessions_by_film_id(self, film_id: int) -> list[Session]:
-        query = text(
-            """
-            SELECT
-                id,
-                film_id,
-                hall_id,
-                start_time,
-                price,
-                total_seats,
-                available_seats,
-                created_at
-            FROM sessions
-            WHERE film_id = :film_id
-            ORDER BY start_time;
-            """
-        )
+        query = text("""
+            SELECT * 
+            FROM get_film_sessions(:film_id);
+        """)
 
         result = await self.session.execute(query, {"film_id": film_id})
         rows = result.fetchall()

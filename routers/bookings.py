@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-from schemas.bookings import Booking, NewBooking
+from schemas.bookings import Booking, NewBooking, BookingDetailed
 from services.booking_service import BookingService, get_booking_service
 from core.auth import get_current_user_id, admin_required
 from domain.exceptions import DomainError
@@ -20,7 +20,7 @@ async def create_booking(
         raise HTTPException(status_code=409, detail=str(e))
 
 
-@router.get("/me", response_model=list[Booking])
+@router.get("/me", response_model=list[BookingDetailed])
 async def get_my_bookings(
     user_id: int = Depends(get_current_user_id),
     service: BookingService = Depends(get_booking_service),
@@ -51,9 +51,6 @@ async def get_session_bookings(
     id: int,
     service: BookingService = Depends(get_booking_service)
 ):
-    """
-    Получить все бронирования для указанного сеанса
-    """
     try:
         all_bookings = await service.get_all()
         session_bookings = [booking for booking in all_bookings if booking.session_id == id]

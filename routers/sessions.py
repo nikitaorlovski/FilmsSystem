@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 
 from core.auth import admin_required
-from domain.exceptions import FilmNotFound, HallNotFound, SessionConflictError
+from domain.exceptions import FilmNotFound, HallNotFound, SessionConflictError, SessionNotFoundError, \
+    SessionHasActiveBookingsError
 from services.session_service import SessionService, get_session_service
 from schemas.sessions import NewSession, Session
 
@@ -39,10 +40,17 @@ async def get_all_sessions(
     dependencies=[Depends(admin_required)]
 )
 async def delete_session(
-    session_id: int,
-    service: SessionService = Depends(get_session_service),
+        session_id: int,
+        service: SessionService = Depends(get_session_service),
 ):
     try:
         return await service.delete(session_id)
-    except Exception as e:
+
+    except SessionNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+    except SessionHasActiveBookingsError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    except SessionConflictError as e:
+        raise HTTPException(status_code=409, detail=str(e))

@@ -20,3 +20,21 @@ class Booking(BaseModel):
     seat_number: int
     status: str
     created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class BookingDetailed(BaseModel):
+    booking_id: int
+    user_id: int
+    session_id: int
+    seat_number: int
+    status: str
+    created_at: datetime
+    film_title: str
+    start_time: datetime
+    hall_name: str
+
+    class Config:
+        from_attributes = True

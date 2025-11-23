@@ -1,6 +1,6 @@
 from fastapi import Depends
 
-from schemas.bookings import NewBooking, Booking
+from schemas.bookings import NewBooking, Booking, BookingDetailed
 from domain.interfaces.booking_repository import IBookingRepository
 from repositories.booking_repository import get_booking_repo, BookingRepository
 
@@ -12,7 +12,7 @@ class BookingService:
     async def create(self, user_id: int, data: NewBooking) -> Booking:
         return await self.repo.create(user_id, data)
 
-    async def get_my(self, user_id: int) -> list[Booking]:
+    async def get_my(self, user_id: int) -> list[BookingDetailed]:
         return await self.repo.get_user_bookings(user_id)
 
     async def cancel(self, booking_id: int, user_id: int) -> Booking:
